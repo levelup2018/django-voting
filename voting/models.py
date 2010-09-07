@@ -9,6 +9,29 @@ SCORES = (
     (u'+1', +1),
     (u'-1', -1),
 )
+COUNT_ATTRIBUTES = {}
+SCORE_ATTRIBUTES = {}
+
+def cls_module_name(cls):
+    return cls.__module__.split('.')[-2]+'.'+cls.__name__.lower()
+
+class VotingCountField(models.IntegerField):
+    def __init__(self,*args,**kwargs):
+        kwargs['default'] = 0
+        super(VotingCountField,self).__init__(*args,**kwargs)
+
+    def contribute_to_class(self,cls,name):
+        super(VotingCountField,self).contribute_to_class(cls,name)
+        COUNT_ATTRIBUTES[cls_module_name(cls)] = name
+
+class VotingScoreField(models.IntegerField):
+    def __init__(self,*args,**kwargs):
+        kwargs['default'] = 0
+        super(VotingScoreField,self).__init__(*args,**kwargs)
+
+    def contribute_to_class(self,cls,name):
+        super(VotingScoreField,self).contribute_to_class(cls,name)
+        SCORE_ATTRIBUTES[cls_module_name(cls)] = name
 
 class Vote(models.Model):
     """
@@ -21,6 +44,22 @@ class Vote(models.Model):
     vote         = models.SmallIntegerField(choices=SCORES)
 
     objects = VoteManager()
+
+    def save(self,*args,**kwargs):
+        super(Vote,self).save(*args,**kwargs)
+        content_type = self.content_type
+        cls_name = content_type.app_label + '.' + content_type.model
+        if not ( cls_name in COUNT_ATTRIBUTES or cls_name in SCORE_ATTRIBUTES ):
+            return
+        obj = self.object
+        score = Vote.objects.get_score(obj)
+
+        if cls_name in COUNT_ATTRIBUTES:
+            setattr(obj,COUNT_ATTRIBUTES[cls_name],score['num_votes'])
+        if cls_name in SCORE_ATTRIBUTES:
+            setattr(obj,SCORE_ATTRIBUTES[cls_name],score['score'])
+        obj.save()
+
 
     class Meta:
         db_table = 'votes'

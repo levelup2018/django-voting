@@ -196,6 +196,16 @@ def confirm_vote_message(object_description, vote_direction):
         message = 'Confirm <strong>%s</strong> vote for <strong>%%s</strong>.' % vote_direction
     return message % (escape(object_description),)
 
+from django.core.urlresolvers import reverse
+
+@register.simple_tag
+def url_vote(obj,direction):
+    cls = obj.__class__
+    return reverse('voting_vote',\
+            kwargs={'app_label':cls.__module__.split('.')[-2],
+                    'model_name':cls.__name__.lower(),\
+                    'object_id':obj.pk,'direction':direction})
+
 register.simple_tag(confirm_vote_message)
 
 # Filters
