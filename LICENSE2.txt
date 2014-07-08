@@ -1,4 +1,4 @@
-django-voting
+django-voting (OHI)
 -------------
 
 Copyright (c) 2007, Jonathan Buchanan
